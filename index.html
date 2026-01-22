@@ -10,101 +10,48 @@
         <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
         <style>
-            /* --- TUS ESTILOS --- */
-            body { 
-                margin: 0; overflow: hidden; touch-action: none; 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                background-color: #000;
-            }
-            #splash-screen {
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background-color: #ffffff; z-index: 9998; display: flex; 
-                flex-direction: column; justify-content: center; align-items: center;
-                transition: opacity 0.8s ease-in-out, visibility 0.8s;
-            }
-            #splash-screen img { width: 120px; height: auto; margin-bottom: 30px; }
-            #loader-content { display: flex; flex-direction: column; align-items: center; transition: opacity 0.3s ease; }
-            .spinner {
-                width: 30px; height: 30px; border: 3px solid rgba(0, 0, 0, 0.1);
-                border-radius: 50%; border-top-color: #555;
-                animation: spin 1s ease-in-out infinite; margin-bottom: 15px;
-            }
-            @keyframes spin { to { transform: rotate(360deg); } }
-            #loading-text { color: #888; font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-            .hidden-splash { opacity: 0 !important; visibility: hidden; pointer-events: none; }
-            #start-button {
-                position: relative; margin-top: 10px; background-color: #000000; 
-                color: white; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; 
-                text-transform: uppercase; padding: 14px 28px; border: none;
-                border-radius: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); 
-                opacity: 0; display: none; transform: scale(0.95);
-                transition: transform 0.2s, opacity 0.5s ease; cursor: pointer;
-            }
-            #start-button:active { transform: scale(0.90); background-color: #333333; }
-            #whatsapp-button {
-                display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9998;
-                background-color: transparent; padding: 0; border: none; transition: transform 0.2s;
-            }
-            #whatsapp-button img { width: 27.5px; height: 27.5px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2)); }
-            #whatsapp-button:active { transform: scale(0.9); }
+            body { margin: 0; overflow: hidden; touch-action: none; background-color: #000; font-family: sans-serif; }
+            
+            /* Pantalla de carga */
+            #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #fff; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
+            #splash-screen img { width: 100px; margin-bottom: 20px; }
+            .hidden { opacity: 0; pointer-events: none; }
+            
+            #start-button { padding: 15px 30px; background: #000; color: #fff; border: none; border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer; }
         </style>
 
         <script>
-            document.addEventListener("DOMContentLoaded", () => {
-                const percentText = document.getElementById('percent');
-                let progress = 0;
-                const interval = setInterval(() => {
-                    if (progress < 90) {
-                        let increment = Math.random() * (progress < 50 ? 5 : 2); 
-                        progress += increment;
-                        if (progress > 99) progress = 99;
-                        percentText.innerText = Math.floor(progress) + "%";
-                    }
-                }, 150);
-
-                window.finishLoading = () => {
-                    clearInterval(interval);
-                    percentText.innerText = "100%";
-                    setTimeout(() => {
-                        const loaderContent = document.getElementById('loader-content');
-                        loaderContent.style.opacity = '0';
-                        setTimeout(() => {
-                            loaderContent.style.display = 'none'; 
-                            const btn = document.getElementById('start-button');
-                            btn.style.display = 'block';
-                            requestAnimationFrame(() => {
-                                btn.style.opacity = '1';
-                                btn.style.transform = 'scale(1)';
-                            });
-                        }, 300);
-                    }, 500);
-                };
-            });
-
             AFRAME.registerComponent('master-controller', {
                 init: function () {
-                    this.startButton = document.querySelector("#start-button");
-                    this.splash = document.querySelector("#splash-screen"); 
-                    this.hud = document.querySelector("#hud-container");
-                    this.vid = document.querySelector("#vid");
-                    this.model = document.querySelector("#animatedModel");
-                    this.waButton = document.querySelector("#whatsapp-button");
-                    
-                    this.isUnlocked = false; 
+                    const btn = document.querySelector("#start-button");
+                    const splash = document.querySelector("#splash-screen");
+                    const hud = document.querySelector("#hud-container");
+                    const vid = document.querySelector("#vid");
+                    const model = document.querySelector("#animatedModel");
+
+                    this.isUnlocked = false;
                     this.startX = 0; this.startY = 0;
                     this.initialDistance = 0; this.initialScaleVector = new THREE.Vector3();
 
-                    this.startButton.addEventListener('click', () => {
-                        if (this.isUnlocked) return;
+                    btn.addEventListener('click', () => {
                         this.isUnlocked = true;
-                        this.startButton.style.opacity = '0';
-                        this.splash.classList.add('hidden-splash');
-                        this.hud.setAttribute('visible', 'true');
-                        this.waButton.style.display = "block"; 
-                        this.vid.play(); // Play normal (sin muted forzado, como pediste)
-                        if (this.model) this.model.setAttribute('animation-mixer', 'timeScale: 1');
+                        splash.classList.add('hidden');
+                        hud.setAttribute('visible', 'true');
+                        
+                        // Intentar reproducir video
+                        vid.play().then(() => {
+                            console.log("Video playing");
+                        }).catch(e => {
+                            // Si falla, intentamos mutearlo (fallback)
+                            console.log("Autoplay blocked, trying muted");
+                            vid.muted = true;
+                            vid.play();
+                        });
+
+                        if (model) model.setAttribute('animation-mixer', 'timeScale: 1');
                     });
 
+                    // Gestos (Rotar/Escalar)
                     window.addEventListener('touchstart', (e) => {
                         if (!this.isUnlocked) return;
                         if(e.touches.length === 1) {
@@ -114,27 +61,26 @@
                             var dx = e.touches[0].clientX - e.touches[1].clientX;
                             var dy = e.touches[0].clientY - e.touches[1].clientY;
                             this.initialDistance = Math.sqrt(dx * dx + dy * dy);
-                            if (this.model) this.initialScaleVector.copy(this.model.object3D.scale);
+                            if (model) this.initialScaleVector.copy(model.object3D.scale);
                         }
                     });
 
                     window.addEventListener('touchmove', (e) => {
-                        if (!this.isUnlocked || !this.model) return;
+                        if (!this.isUnlocked || !model) return;
                         if(e.touches.length === 1) {
                             var deltaX = e.touches[0].clientX - this.startX;
                             var deltaY = e.touches[0].clientY - this.startY;
                             this.startX = e.touches[0].clientX;
                             this.startY = e.touches[0].clientY;
-                            this.model.object3D.rotation.y += deltaX * 0.01;
-                            this.model.object3D.rotation.x += deltaY * 0.01;
-                        } 
-                        else if (e.touches.length === 2 && this.initialDistance > 0) {
+                            model.object3D.rotation.y += deltaX * 0.01;
+                            model.object3D.rotation.x += deltaY * 0.01;
+                        } else if (e.touches.length === 2 && this.initialDistance > 0) {
                              var dx = e.touches[0].clientX - e.touches[1].clientX;
                              var dy = e.touches[0].clientY - e.touches[1].clientY;
                              var scaleFactor = Math.sqrt(dx*dx + dy*dy) / this.initialDistance;
                              var newS = this.initialScaleVector.x * scaleFactor;
-                             newS = Math.min(Math.max(newS, 0.005), 2.0);
-                             this.model.object3D.scale.set(newS, newS, newS);
+                             newS = Math.min(Math.max(newS, 0.05), 2.0);
+                             model.object3D.scale.set(newS, newS, newS);
                         }
                     });
                 }
@@ -148,64 +94,47 @@
                         if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
                             var aspectRatio = videoEl.videoHeight / videoEl.videoWidth;
                             var isPortrait = window.innerHeight > window.innerWidth;
-                            var scaleFactor = isPortrait ? 3.1 : 5;
+                            var scaleFactor = isPortrait ? 3.5 : 5;
                             planeEl.setAttribute('width', scaleFactor); 
                             planeEl.setAttribute('height', aspectRatio * scaleFactor);
                         }
                     };
                     videoEl.addEventListener('loadedmetadata', applySize);
-                    if (videoEl.readyState >= 1) applySize();
                     window.addEventListener('resize', applySize);
                 }
             });
-
-            window.addEventListener('arjs-video-loaded', function(e) {
-                if(window.finishLoading) window.finishLoading();
-            });
-            setTimeout(() => { if(window.finishLoading) window.finishLoading(); }, 6000);
         </script>
     </head>
 
     <body>
         <div id="splash-screen">
-            <img src="logo.png" alt="Bhastian Logo">
-            <div id="loader-content">
-                <div class="spinner"></div>
-                <div id="loading-text">CARGANDO <span id="percent">0%</span></div>
-            </div>
+            <img src="logo.png" alt="Logo">
             <button id="start-button">VER EXPERIENCIA</button>
         </div>
-
-        <a href="https://wa.me/593983088889?text=Hola%20Bhastian" target="_blank" id="whatsapp-button">
-           <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Icon">
-        </a>
 
         <a-scene
             master-controller
             vr-mode-ui="enabled: false"
-            loading-screen="enabled: false;"
+            renderer="logarithmicDepthBuffer: true; colorManagement: false; precision: medium;"
             arjs='sourceType: webcam; debugUIEnabled: false;'
-            renderer="logarithmicDepthBuffer: true; colorManagement: true; precision: medium; antialias: false;" 
-            gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
-            id="scene" 
-            embedded 
-            shadow="enabled: false"
+            embedded
         >
             <a-assets>
                 <video id="vid" src="senna.mp4" preload="auto" loop crossorigin webkit-playsinline autoplay playsinline></video>
                 <a-asset-item id="miModelo" src="IMOLAF-v1.glb"></a-asset-item>
             </a-assets>
 
-            <a-entity light="type: ambient; intensity: 1.0; color: #ffffff"></a-entity>
-            <a-entity light="type: directional; intensity: 1.0" position="2 4 4"></a-entity>
-            
+            <a-entity light="type: ambient; intensity: 3; color: #ffffff"></a-entity>
+            <a-entity light="type: directional; intensity: 0.5" position="1 1 1"></a-entity>
+
             <a-entity camera>
                 <a-entity id="hud-container" visible="false" position="0 0 -6">
+                    
                     <a-video
                         src="#vid"
                         fix-video-size
-                        position="0 1.5 -2" 
-                        material="shader: flat; src: #vid; depthWrite: false;"
+                        position="0 1.5 -1.5" 
+                        material="shader: flat; src: #vid; side: double;"
                     ></a-video>
                     
                     <a-entity
@@ -216,6 +145,7 @@
                         rotation="0 0 0" 
                         animation-mixer="loop: repeat"
                     ></a-entity>
+
                 </a-entity>
             </a-entity>
         </a-scene>
