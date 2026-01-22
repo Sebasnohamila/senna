@@ -10,7 +10,7 @@
         <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
         <style>
-            /* TIPOGRAFÍA APPLE / IOS */
+            /* TIPOGRAFÍA Y ESTILOS */
             body { 
                 margin: 0; 
                 overflow: hidden; 
@@ -31,14 +31,12 @@
                 transition: opacity 0.8s ease-in-out, visibility 0.8s;
             }
 
-            /* LOGO */
             #splash-screen img { 
                 width: 120px;
                 height: auto; 
                 margin-bottom: 30px;
             }
             
-            /* CONTENEDOR DE CARGA */
             #loader-content {
                 display: flex;
                 flex-direction: column;
@@ -46,7 +44,6 @@
                 transition: opacity 0.3s ease;
             }
 
-            /* SPINNER */
             .spinner {
                 width: 30px;
                 height: 30px;
@@ -61,7 +58,6 @@
                 to { transform: rotate(360deg); }
             }
 
-            /* TEXTO DE PORCENTAJE */
             #loading-text {
                 color: #888;
                 font-size: 14px;
@@ -140,20 +136,16 @@
                     }
                 }, 150);
 
-                // Función que se ejecuta al terminar la carga (100%)
                 window.finishLoading = () => {
                     clearInterval(interval);
                     percentText.innerText = "100%";
                     
                     setTimeout(() => {
-                        // 1. Ocultar el contenedor de carga
                         const loaderContent = document.getElementById('loader-content');
                         loaderContent.style.opacity = '0';
                         
                         setTimeout(() => {
                             loaderContent.style.display = 'none'; 
-                            
-                            // 2. Mostrar el botón
                             const btn = document.getElementById('start-button');
                             btn.style.display = 'block';
                             
@@ -192,7 +184,6 @@
                         this.waButton.style.display = "block"; 
                         this.vid.play();
                         
-                        // Aseguramos que el modelo esté visible al desbloquear
                         if (this.model) {
                              this.model.setAttribute('visible', 'true');
                              this.model.setAttribute('animation-mixer', 'timeScale: 1');
@@ -221,10 +212,10 @@
                             this.startY = e.touches[0].clientY;
 
                             var newRotationY = this.model.object3D.rotation.y + (deltaX * 0.01);
-                            this.model.object3D.rotation.y = Math.min(Math.max(newRotationY, -0.8), 0.8);
+                            this.model.object3D.rotation.y = newRotationY; 
 
                             var newRotationX = this.model.object3D.rotation.x + (deltaY * 0.01);
-                            this.model.object3D.rotation.x = Math.min(Math.max(newRotationX, 0.0), 0.8);
+                            this.model.object3D.rotation.x = Math.min(Math.max(newRotationX, -0.5), 0.5);
                         } 
                         else if (e.touches.length === 2 && this.initialDistance > 0) {
                              var dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -232,8 +223,7 @@
                              var scaleFactor = Math.sqrt(dx*dx + dy*dy) / this.initialDistance;
 
                              var newS = this.initialScaleVector.x * scaleFactor;
-                             // Ajusté el máximo de escala para que permita hacerlo más grande
-                             newS = Math.min(Math.max(newS, 0.005), 2.0);
+                             newS = Math.min(Math.max(newS, 0.005), 5.0); // Ajustado rango de escala
                              this.model.object3D.scale.set(newS, newS, newS);
                         }
                     });
@@ -291,17 +281,17 @@
             loading-screen="enabled: false;"
             arjs='sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;'
             renderer="logarithmicDepthBuffer: true; colorManagement: true; antialias: true;" 
+            gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.4.4/;"
             id="scene" 
-            embedded 
+            embedded
         >
             <a-assets>
                 <video id="vid" src="senna.mp4" preload="auto" loop crossorigin webkit-playsinline autoplay playsinline></video>
                 <a-asset-item id="miModelo" src="FIMOLA-v1.glb"></a-asset-item>
             </a-assets>
 
-            <a-entity light="type: ambient; intensity: 1.2; color: #ffffff"></a-entity>
-            
-            <a-entity light="type: directional; intensity: 1.5" position="2 4 4"></a-entity>
+            <a-entity light="type: ambient; intensity: 1.5; color: #ffffff"></a-entity>
+            <a-entity light="type: directional; intensity: 2" position="2 4 4"></a-entity>
 
             <a-entity camera>
                 <a-entity id="hud-container" visible="false" position="0 0 -6">
@@ -315,9 +305,9 @@
                     <a-entity
                         id="animatedModel"
                         gltf-model="#miModelo"
-                        scale="0.5 0.5 0.5"
+                        scale="0.1 0.1 0.1"
                         position="0 -1 0" 
-                        rotation="0 0 0" 
+                        rotation="0 45 0" 
                         animation-mixer="loop: repeat"
                     ></a-entity>
                 </a-entity>
