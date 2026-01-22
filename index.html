@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experiencia Caballeros AR</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+
+    <style>
+        /* Estilos Generales */
+        body { margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #000; }
+        
+        /* VIDEO DE LA CÁMARA */
+        #camera-feed {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            object-fit: cover;
+            z-index: 0; 
+            transform: scaleX(-1);
+            opacity: 0; 
+            transition: opacity 0.5s ease;
+        }
+        @media (max-width: 768px) {
+            #camera-feed { transform: scaleX(1); } 
+        }
+
+        /* Visor 3D */
+        model-viewer {
+            width: 100vw; height: 100vh;
+            background-color: transparent;
+            position: absolute; top: 0; left: 0; 
+            z-index: 1; outline: none;
+            --poster-color: transparent;
+        }
+
+        /* Botón WhatsApp */
+        #whatsapp-button {
+            position: fixed; bottom: 25px; right: 25px; z-index: 9999;
+            width: 42px; height: 42px; background-color: transparent;
+            display: flex; align-items: center; justify-content: center;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+            transition: transform 0.3s ease; opacity: 0; pointer-events: none;
+            border: none; text-decoration: none;
+        }
+        #whatsapp-button img { width: 100%; height: 100%; object-fit: contain; }
+        #whatsapp-button:hover { transform: scale(1.1); }
+        body.loaded #whatsapp-button { opacity: 1; pointer-events: auto; }
+
+        /* Pantalla de Carga (Splash) */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: white; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; 
+            transition: opacity 0.8s ease-in-out;
+        }
+        #company-logo { max-width: 150px; margin-bottom: 40px; }
+        
+        /* --- LOADER ESTILO APPLE (iOS) --- */
+        .ios-spinner {
+            position: relative;
+            width: 54px;
+            height: 54px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .ios-spinner div {
+            box-sizing: border-box;
+            display: block;
+            position: absolute;
+            width: 3px;
+            height: 14px;
+            border-radius: 2px;
+            background: #8e8e93;
+            animation: ios-spinner-fade 1.2s linear infinite;
+        }
+        .ios-spinner div:nth-child(1) { transform: rotate(0deg) translate(0, -130%); animation-delay: -1.1s; }
+        .ios-spinner div:nth-child(2) { transform: rotate(30deg) translate(0, -130%); animation-delay: -1.0s; }
+        .ios-spinner div:nth-child(3) { transform: rotate(60deg) translate(0, -130%); animation-delay: -0.9s; }
+        .ios-spinner div:nth-child(4) { transform: rotate(90deg) translate(0, -130%); animation-delay: -0.8s; }
+        .ios-spinner div:nth-child(5) { transform: rotate(120deg) translate(0, -130%); animation-delay: -0.7s; }
+        .ios-spinner div:nth-child(6) { transform: rotate(150deg) translate(0, -130%); animation-delay: -0.6s; }
+        .ios-spinner div:nth-child(7) { transform: rotate(180deg) translate(0, -130%); animation-delay: -0.5s; }
+        .ios-spinner div:nth-child(8) { transform: rotate(210deg) translate(0, -130%); animation-delay: -0.4s; }
+        .ios-spinner div:nth-child(9) { transform: rotate(240deg) translate(0, -130%); animation-delay: -0.3s; }
+        .ios-spinner div:nth-child(10) { transform: rotate(270deg) translate(0, -130%); animation-delay: -0.2s; }
+        .ios-spinner div:nth-child(11) { transform: rotate(300deg) translate(0, -130%); animation-delay: -0.1s; }
+        .ios-spinner div:nth-child(12) { transform: rotate(330deg) translate(0, -130%); animation-delay: 0s; }
+
+        @keyframes ios-spinner-fade {
+            0% { background: #000000; } 
+            100% { background: #d1d1d6; } 
+        }
+
+        .loading-text { color: #888; font-size: 12px; letter-spacing: 0.5px; font-weight: 500; font-family: -apple-system, sans-serif; margin-top: 10px; }
+        #error-message { color: #e74c3c; margin-top: 20px; display: none; text-align: center; font-size: 14px; padding: 0 20px; }
+        
+        #start-button {
+            display: none; margin-top: 30px; padding: 14px 40px;
+            background-color: #007AFF; 
+            color: white;
+            border: none; border-radius: 40px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,122,255,0.3); transition: transform 0.2s ease, opacity 0.3s;
+        }
+        #start-button:active { transform: scale(0.96); }
+        #start-button:disabled { background-color: #ccc; box-shadow: none; cursor: wait; }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <img src="logo.png" alt="Bhastian" id="company-logo" onerror="this.style.display='none'">
+        <div id="loader-container">
+            <div class="ios-spinner">
+                <div></div><div></div><div></div><div></div><div></div><div></div>
+                <div></div><div></div><div></div><div></div><div></div><div></div>
+            </div>
+            <div class="loading-text" id="progress-text">Cargando...</div>
+        </div>
+        <div id="error-message">Error al cargar modelo.</div>
+        <button id="start-button">VER EXPERIENCIA</button>
+    </div>
+
+    <video id="camera-feed" autoplay playsinline muted></video>
+
+    <audio id="bg-audio" loop crossorigin="anonymous">
+        <source src="mclaren.mp3" type="audio/mp3">
+    </audio>
+
+    <model-viewer 
+        id="viewer"
+        src="FINALAUSTRIA-v2.glb"
+        alt="CABALLEROS DEL ZOODIACO 3D"
+        loading="eager"
+        autoplay
+        animation-name="*"
+        disable-tap
+        camera-controls
+        camera-target="auto auto auto"
+        camera-orbit="0deg 75deg 85%"
+        min-camera-orbit="auto auto 10%"
+        max-camera-orbit="auto auto auto"
+        shadow-intensity="1"
+        ar
+        ar-modes="webxr scene-viewer quick-look">
+    </model-viewer>
+
+    <a href="https://wa.me/593983088889" id="whatsapp-button">
+        <img src="whatsapp.png" alt="WhatsApp" onerror="this.style.display='none'">
+    </a>
+
+    <script>
+        const modelViewer = document.querySelector('#viewer');
+        const loaderContainer = document.getElementById('loader-container');
+        const startButton = document.getElementById('start-button');
+        const splashScreen = document.getElementById('splash-screen');
+        const bgAudio = document.getElementById('bg-audio'); 
+        const cameraFeed = document.getElementById('camera-feed');
+        const errorMsg = document.getElementById('error-message');
+        const progressText = document.getElementById('progress-text');
+        
+        let isLoaded = false;
+        let audioContext = null;
+
+        // Función de Audio Boost
+        function initAudioBoost() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+                const source = audioContext.createMediaElementSource(bgAudio);
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 1.25; 
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                bgAudio.play();
+            } catch (e) {
+                console.warn("Audio Context fallback", e);
+                bgAudio.volume = 1.0;
+                bgAudio.play();
+            }
+        }
+
+        modelViewer.addEventListener('progress', (event) => {
+            const percentage = Math.round(event.detail.totalProgress * 100);
+            progressText.innerText = `${percentage}%`;
+        });
+
+        modelViewer.addEventListener('load', () => {
+            isLoaded = true;
+            loaderContainer.style.display = 'none';
+            startButton.style.display = 'block';
+            if (modelViewer.availableAnimations.length > 0) {
+                modelViewer.play();
+            }
+        });
+
+        modelViewer.addEventListener('error', (error) => {
+            loaderContainer.style.display = 'none';
+            errorMsg.style.display = 'block';
+        });
+
+        async function startCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: "environment" } 
+                    });
+                    cameraFeed.srcObject = stream;
+                    return new Promise((resolve) => {
+                        cameraFeed.onloadeddata = () => {
+                            setTimeout(() => resolve(true), 500); 
+                        };
+                    });
+                } catch (err) {
+                    alert("No se pudo acceder a la cámara.");
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        startButton.addEventListener('click', async () => {
+            startButton.innerText = "INICIANDO...";
+            startButton.style.opacity = "0.7";
+            startButton.disabled = true;
+
+            initAudioBoost();
+            await startCamera();
+            
+            cameraFeed.style.opacity = '1';
+            splashScreen.style.opacity = '0';
+            
+            setTimeout(() => { 
+                splashScreen.style.display = 'none';
+                document.body.classList.add('loaded');
+                modelViewer.play(); 
+            }, 800);
+        });
+    </script>
+</body>
+</html>
